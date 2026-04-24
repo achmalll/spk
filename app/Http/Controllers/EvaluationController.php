@@ -72,15 +72,19 @@ class EvaluationController extends Controller
         DB::beginTransaction();
         try {
             // Clear existing data for fresh evaluation
-            EvaluationResult::truncate();
-            PerformanceScore::truncate();
-            ClassManager::truncate();
+            EvaluationResult::query()->delete();
+            PerformanceScore::query()->delete();
+            ClassManager::query()->delete();
 
             $matrix = [];
             $pakarRanks = [];
             $managers = [];
 
+            ini_set('auto_detect_line_endings', true);
             while (($row = fgetcsv($handle)) !== false) {
+                if (empty($row) || ! isset($row[1])) {
+                    continue;
+                }
                 // Assuming header: rank_pakar, nama, batch, achievement, engagement, completion, feedback
                 $rankPakar = (int) $row[0];
                 $nama = $row[1];

@@ -4,7 +4,7 @@ namespace App\Services;
 
 class SAWService
 {
-    public function normalize(array $matrix, array $criterias): array
+    public function normalize(array $matrix, $criterias): array
     {
         $normalized = [];
         $maxValues = [];
