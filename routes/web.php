@@ -1,16 +1,11 @@
 <?php
 
-use App\Http\Controllers\ClassManagerController;
+use App\Http\Controllers\EvaluationController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return redirect()->route('class-managers.index');
-})->name('home');
+// Main Dashboard
+Route::get('/', [EvaluationController::class, 'index'])->name('dashboard');
 
-Route::redirect('/dashboard', '/class-managers');
-
-Route::post('class-managers/import', [ClassManagerController::class, 'import'])->name('class-managers.import');
-Route::post('class-managers/calculate', [ClassManagerController::class, 'calculate'])->name('class-managers.calculate');
-Route::resource('class-managers', ClassManagerController::class);
-
-require __DIR__.'/settings.php';
+// Evaluation Actions
+Route::post('/import', [EvaluationController::class, 'import'])->name('import');
+Route::get('/template', [EvaluationController::class, 'template'])->name('template');
