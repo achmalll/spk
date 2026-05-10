@@ -18,9 +18,14 @@ interface Manager {
 interface Result {
     id: number;
     manager_id: number;
+    saw_score: string;
+    ml_score: string;
+    hybrid_score: string;
     final_score: string;
     rank_system: number;
     rank_pakar: number;
+    month: string;
+    year: number;
     manager: Manager;
 }
 
@@ -33,6 +38,14 @@ interface Criteria {
 interface Props {
     results: Result[];
     criterias: Criteria[];
+    filters: {
+        month: string;
+        year: number;
+    };
+    availablePeriods: {
+        month: string;
+        year: number;
+    }[];
     stats: {
         correlation: number;
         accuracyTop3: number;
@@ -40,16 +53,29 @@ interface Props {
     };
 }
 
-export default function Dashboard({ results, criterias, stats }: Props) {
+export default function Dashboard({ results, criterias, filters, availablePeriods, stats }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         file: null as File | null,
     });
+
+    const { post: postReset, processing: processingReset } = useForm();
 
     const submitImport = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('import'), {
             forceFormData: true,
         });
+    };
+
+    const handleReset = () => {
+        if (confirm('Are you sure you want to delete ALL evaluation data? This cannot be undone.')) {
+            postReset(route('reset'));
+        }
+    };
+
+    const handleFilterChange = (month: string, year: number) => {
+        // Simple navigation via Inertia for filtering
+        window.location.href = route('dashboard', { month, year });
     };
 
     const top3 = results.slice(0, 3);
@@ -126,17 +152,46 @@ export default function Dashboard({ results, criterias, stats }: Props) {
                             </div>
                         </motion.div>
                     </div>
+                    {/* Filters & Actions */}
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div className="flex items-center gap-3 bg-white p-2 px-4 rounded-xl shadow-sm border border-gray-100">
+                            <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Periode:</span>
+                            <select 
+                                value={`${filters.month}-${filters.year}`}
+                                onChange={(e) => {
+                                    const [m, y] = e.target.value.split('-');
+                                    handleFilterChange(m, parseInt(y));
+                                }}
+                                className="border-none focus:ring-0 font-bold text-indigo-600 cursor-pointer bg-transparent"
+                            >
+                                <option value={`${filters.month}-${filters.year}`}>{filters.month} {filters.year} (Current)</option>
+                                {availablePeriods.map((p, i) => (
+                                    p.month !== filters.month || p.year !== filters.year ? (
+                                        <option key={i} value={`${p.month}-${p.year}`}>{p.month} {p.year}</option>
+                                    ) : null
+                                ))}
+                            </select>
+                        </div>
+
+                        <button 
+                            onClick={handleReset}
+                            disabled={processingReset}
+                            className="text-xs font-bold text-rose-500 hover:text-rose-700 uppercase tracking-widest border border-rose-200 px-4 py-2 rounded-lg hover:bg-rose-50 transition-colors"
+                        >
+                            {processingReset ? 'Resetting...' : '⚠️ Reset All Data'}
+                        </button>
+                    </div>
 
                     {/* Import Section */}
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                         <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
                             <Upload className="w-5 h-5 text-indigo-500" />
-                            Import Monthly Performance
+                            Import Performa Bulanan (Otomatis: {filters.month} {filters.year})
                         </h3>
                         <form onSubmit={submitImport} className="flex flex-col md:flex-row items-end gap-4">
                             <div className="flex-1 w-full">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    CSV File (rank_pakar, nama, batch, achievement, engagement, completion, feedback)
+                                    CSV File (rank_pakar, nama, batch, KR 1.1, KR 1.2, KR 1.3, KR 1.4)
                                 </label>
                                 <div className="flex items-center gap-4">
                                     <input 
@@ -172,7 +227,7 @@ export default function Dashboard({ results, criterias, stats }: Props) {
                                 <div className="flex-1 flex flex-col items-center group">
                                     <div className="mb-2 text-center">
                                         <p className="font-bold text-gray-600 truncate w-24 md:w-full">{top3[1]?.manager.nama}</p>
-                                        <p className="text-xs text-gray-400">Score: {parseFloat(top3[1]?.final_score).toFixed(4)}</p>
+                                        <p className="text-xs text-gray-400">Hybrid: {parseFloat(top3[1]?.hybrid_score).toFixed(4)}</p>
                                     </div>
                                     <motion.div 
                                         initial={{ height: 0 }}
@@ -188,7 +243,7 @@ export default function Dashboard({ results, criterias, stats }: Props) {
                                 <div className="flex-1 flex flex-col items-center group">
                                     <div className="mb-2 text-center">
                                         <p className="font-black text-gray-900 text-lg truncate w-32 md:w-full">{top3[0]?.manager.nama}</p>
-                                        <p className="text-xs text-indigo-500 font-bold">Score: {parseFloat(top3[0]?.final_score).toFixed(4)}</p>
+                                        <p className="text-xs text-indigo-500 font-bold">Hybrid: {parseFloat(top3[0]?.hybrid_score).toFixed(4)}</p>
                                     </div>
                                     <motion.div 
                                         initial={{ height: 0 }}
@@ -205,7 +260,7 @@ export default function Dashboard({ results, criterias, stats }: Props) {
                                 <div className="flex-1 flex flex-col items-center group">
                                     <div className="mb-2 text-center">
                                         <p className="font-bold text-gray-600 truncate w-24 md:w-full">{top3[2]?.manager.nama}</p>
-                                        <p className="text-xs text-gray-400">Score: {parseFloat(top3[2]?.final_score).toFixed(4)}</p>
+                                        <p className="text-xs text-gray-400">Hybrid: {parseFloat(top3[2]?.hybrid_score).toFixed(4)}</p>
                                     </div>
                                     <motion.div 
                                         initial={{ height: 0 }}
@@ -229,10 +284,12 @@ export default function Dashboard({ results, criterias, stats }: Props) {
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-widest">Rank (System)</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-widest">Rank (Pakar)</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-widest">Rank</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-widest">Pakar</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-widest">Class Manager</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-widest">SAW Score</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-widest">Nilai SAW</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-widest">Nilai ML</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-widest bg-indigo-50">Nilai Hybrid</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-widest">Diff</th>
                                         </tr>
                                     </thead>
@@ -254,8 +311,23 @@ export default function Dashboard({ results, criterias, stats }: Props) {
                                                         <div className="text-sm font-medium text-gray-900">{result.manager.nama}</div>
                                                         <div className="text-xs text-gray-500">{result.manager.batch}</div>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-indigo-600">
-                                                        {parseFloat(result.final_score).toFixed(4)}
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">
+                                                        {parseFloat(result.saw_score).toFixed(4)}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-mono text-emerald-600">
+                                                                {parseFloat(result.ml_score).toFixed(4)}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">
+                                                                ML Probability
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap bg-indigo-50/50">
+                                                        <span className="text-sm font-black text-indigo-700 font-mono">
+                                                            {parseFloat(result.hybrid_score).toFixed(4)}
+                                                        </span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         {diff === 0 ? (
@@ -281,6 +353,30 @@ export default function Dashboard({ results, criterias, stats }: Props) {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Info Kriteria Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border-t-4 border-indigo-400">
+                            <h4 className="font-bold text-indigo-600 text-xs uppercase mb-2">KR 1.1 (C1)</h4>
+                            <p className="text-sm font-black text-gray-800 mb-1">Service CM Quality</p>
+                            <p className="text-xs text-gray-500 leading-relaxed">Respons, komunikasi, dan cara CM menangani masalah student.</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl shadow-sm border-t-4 border-emerald-400">
+                            <h4 className="font-bold text-emerald-600 text-xs uppercase mb-2">KR 1.2 (C2)</h4>
+                            <p className="text-sm font-black text-gray-800 mb-1">Student Experience</p>
+                            <p className="text-xs text-gray-500 leading-relaxed">Kenyamanan belajar, interaksi di kelas, dan kelancaran teknis.</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl shadow-sm border-t-4 border-amber-400">
+                            <h4 className="font-bold text-amber-600 text-xs uppercase mb-2">KR 1.3 (C3)</h4>
+                            <p className="text-sm font-black text-gray-800 mb-1">CSAT (Satisfaction)</p>
+                            <p className="text-xs text-gray-500 leading-relaxed">Hasil akhir kepuasan student terhadap seluruh proses bootcamp.</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl shadow-sm border-t-4 border-rose-400">
+                            <h4 className="font-bold text-rose-600 text-xs uppercase mb-2">KR 1.4 (C4)</h4>
+                            <p className="text-sm font-black text-gray-800 mb-1">Student Engagement</p>
+                            <p className="text-xs text-gray-500 leading-relaxed">Keaktifan student dalam hadir, mengerjakan tugas, dan test.</p>
                         </div>
                     </div>
 
